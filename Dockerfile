@@ -2,16 +2,19 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install dependencies first (layer-cached until requirements change)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install uv for dependency management
+RUN pip install --no-cache-dir uv
+
+# Install dependencies from pyproject.toml
+COPY pyproject.toml uv.lock* ./
+RUN uv sync --frozen
 
 # Copy application source
 COPY app.py config.py settings.py auth.py kavita.py metadata.py ./
 COPY routes/ ./routes/
 COPY templates/ ./templates/
 
-# Data directory â€” mount a volume here to persist settings and logs
+# Data directory — mount a volume here to persist settings and logs
 RUN mkdir -p /data
 ENV DATA_DIR=/data
 
@@ -19,4 +22,4 @@ ENV DATA_DIR=/data
 ENV PORT=8080
 EXPOSE ${PORT}
 
-CMD ["python", "app.py"]
+CMD ["uv", "run", "python", "app.py"]
