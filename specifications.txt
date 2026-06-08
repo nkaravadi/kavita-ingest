@@ -1,0 +1,107 @@
+Got it. Let's strip out the conversational fluff and architectural explanations so it fits cleanly into Devin’s context window without losing any functional details.
+Here is the condensed, machine-readable technical spec and implementation blueprint.
+Technical Spec: Kavita Ingest Pipeline
+Environment & Integration
+• Runtime: Python 3.11+ (FastAPI, httpx, python-multipart)
+• Deployment: OCI Container (Docker/Podman) running on host network or shared Docker bridge with Kavita.
+• Storage: Direct volume mount to the same media root folder used by Kavita. Bypasses SSH overhead.
+Data Flow & Logic
+1. UI Initialization: App queries Kavita API GET /api/Library using KAVITA_API_KEY to retrieve available libraries (id, name, folderPath).
+2. Subject Mapping: App scans the active library's top-level directories (os.scandir()) to generate a dynamic autocomplete list of existing subjects.
+3. Ingestion Execution: • User inputs File, Library, Subject, and Book Title. • Backend sanitizes Book Title string (regex replacement for illegal FS characters: \/:*?"<>|). • Backend ensures directory existence: <Library_Root_Path>/<Subject>/<Sanitized_Book_Title>/. • Stream-writes file to target folder, matching file name to directory name: <Sanitized_Book_Title>.pdf.
+4. Library Sync: Fires POST /api/Library/scan with payload {"libraryId": <ID>, "force": false} to trigger Kavita's parser instantly.
+Implementation Blueprint
+1. app.py (FastAPI Backend)
+import os
+import re
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.responses import HTMLResponse
+import httpx
+
+app = FastAPI()
+
+KAVITA_URL = os.getenv("KAVITA_URL", "http://localhost:5000")
+API_KEY = os.getenv("KAVITA_API_KEY", "")
+HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+
+def sanitize_name(name: str) -> str:
+    return re.sub(r'[\/:*?"<>|]', " - ", name).strip()
+
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    # Simple inline form for Devin to easily split out later
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head><title>Kavita Ingest</title></head>
+    <body>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="text" name="library_id" placeholder="Library ID" required><br>
+            <input type="text" name="library_path" placeholder="Library Path (e.g. /books)" required><br>
+            <input type="text" name="subject" placeholder="Subject (e.g. Kubernetes)" required><br>
+            <input type="text" name="title" placeholder="Book Title" required><br>
+            <input type="file" name="file" accept=".pdf,.epub" required><br>
+            <button type="submit">Ingest & Sync</button>
+        </form>
+    </body>
+    </html>
+    """
+
+@app.post("/upload")
+async def handle_upload(
+    file: UploadFile = File(...),
+    library_id: int = Form(...),
+    library_path: str = Form(...),
+    subject: str = Form(...),
+    title: str = Form(...)
+):
+    sanitized_subject = sanitize_name(subject)
+    sanitized_title = sanitize_name(title)
+    ext = os.path.splitext(file.filename)[1]
+    
+    # Resolve local path inside container mount
+    target_dir = os.path.join(library_path, sanitized_subject, sanitized_title)
+    os.makedirs(target_dir, exist_ok=True)
+    
+    target_file_path = os.path.join(target_dir, f"{sanitized_title}{ext}")
+    
+    # Stream file write
+    with open(target_file_path, "wb") as f:
+        while chunk := await file.read(1024 * 1024):
+            f.write(chunk)
+            
+    # Trigger Kavita Scan
+    async with httpx.AsyncClient() as client:
+        scan_url = f"{KAVITA_URL}/api/Library/scan"
+        payload = {"libraryId": library_id, "force": False}
+        try:
+            res = await client.post(scan_url, json=payload, headers=HEADERS)
+            if res.status_code != 200:
+                return {"status": "success", "warning": f"File saved, but Kavita API returned status {res.status_code}"}
+        except Exception as e:
+            return {"status": "success", "warning": f"File saved, but failed to alert Kavita: {str(e)}"}
+
+    return {"status": "success", "path": target_file_path, "kavita_synced": True}
+
+2. Dockerfile
+FROM python:3.11-alpine
+WORKDIR /app
+RUN pip install --no-cache-dir fastapi uvicorn python-multipart httpx
+COPY app.py .
+EXPOSE 8080
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
+
+3. docker-compose.yml
+services:
+  kavita-ingest:
+    build: .
+    container_name: kavita-ingest
+    ports:
+      - "8080:8080"
+    environment:
+      - KAVITA_URL=http://kavita:5000
+      - KAVITA_API_KEY=your_actual_token_here
+    volumes:
+      - /volume1/media/books:/books  # Must match Kavita container library path mapping
+    restart: unless-stopped
+

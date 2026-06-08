@@ -1,0 +1,34 @@
+services:
+  kavita-ingest:
+    build: .
+    container_name: kavita-ingest
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    environment:
+      # Listening port — change here AND in the ports mapping above if needed
+      - PORT=${PORT:-8080}
+      # DATA_DIR is baked into the image as /data; override here only if you
+      # want a different path inside the container (rarely needed)
+      # - DATA_DIR=/data
+
+      # ── Optional seed values ──────────────────────────────────────────────
+      # If set, these are written to data/settings.json on first run only.
+      # After that, all configuration is done through the /settings UI.
+      # Leave these blank (or remove them) for a clean first-run experience.
+      # - KAVITA_URL=http://192.168.1.100:5000
+      # - KAVITA_API_KEY=your-api-key-here
+
+    volumes:
+      # Persist settings, auth, and logs across container restarts/upgrades
+      - kavita-ingest-data:/data
+
+      # Mount your book library so the app can write files into it.
+      # The path on the RIGHT must match what Kavita sees as its library root.
+      # Example: if Kavita's "Physics" library points to /books/Physics
+      #          then mount your host's books folder to /books here.
+      - /path/to/your/books:/books
+
+    restart: unless-stopped
+
+volumes:
+  kavita-ingest-data:

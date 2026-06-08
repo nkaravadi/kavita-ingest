@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — Kavita Ingest Manager</title>
+    <style>
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header h1 { font-size: 1.6em; }
+        .header-right { display:flex; gap:10px; align-items:center; }
+
+        .content { padding: 36px; }
+
+        .section {
+            margin-bottom: 36px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid #f0f0f8;
+        }
+        .section:last-child { border-bottom: none; margin-bottom: 0; }
+
+        .section-title {
+            font-size: 1.05em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .field { margin-bottom: 18px; }
+        .field label {
+            display: block;
+            font-weight: 600;
+            font-size: .88em;
+            color: #555;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+        }
+        .field input[type=text], .field input[type=password], .field input[type=url] {
+            width: 100%;
+            padding: 11px 14px;
+            border: 2px solid #e0e0f0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color .2s;
+        }
+        .field input:focus { outline: none; border-color: #667eea; }
+        .field .hint {
+            font-size: .8em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 11px 22px;
+            border: none;
+            border-radius: 10px;
+            font-size: .95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform .2s, box-shadow .2s;
+            width: 100%;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,.4); }
+        button:active { transform: translateY(0); }
+        button:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-sm { padding: 8px 16px; font-size: .85em; width: auto; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { box-shadow: 0 5px 20px rgba(108,117,125,.4); }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { box-shadow: 0 5px 20px rgba(220,53,69,.4); }
+        .btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: .85em;
+            font-weight: 700;
+        }
+        .status-ok      { background: #d4edda; color: #155724; }
+        .status-error   { background: #f8d7da; color: #721c24; }
+        .status-unknown { background: #e8e8f8; color: #555; }
+
+        .message {
+            padding: 13px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: .93em;
+        }
+        .message.success { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+        .message.error   { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+        .message.info    { background:#d1ecf1; color:#0c5460; border:1px solid #bee5eb; }
+
+        .spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid #ccc;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .logout-btn { background:#dc3545; padding:7px 14px; font-size:.83em; width:auto; }
+        .logout-btn:hover { box-shadow: 0 4px 14px rgba(220,53,69,.4); }
+
+        a.back-link {
+            color: white;
+            font-size: .83em;
+            font-weight: 600;
+            text-decoration: none;
+            background: rgba(255,255,255,.18);
+            padding: 7px 14px;
+            border-radius: 10px;
+        }
+        a.back-link:hover { background: rgba(255,255,255,.28); }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>&#9881;&#65039; Settings</h1>
+        <div class="header-right">
+            <a href="/" class="back-link">&#8592; Back to app</a>
+            <button class="logout-btn btn-sm" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="message" class="message"></div>
+
+        <!-- ── Kavita connection ───────────────────────────────────────── -->
+        <div class="section">
+            <div class="section-title">&#128218; Kavita Connection</div>
+
+            <div class="field">
+                <label>Kavita URL</label>
+                <input type="url" id="kavitaUrl" placeholder="http://192.168.1.100:5000">
+                <div class="hint">The base URL of your Kavita server (no trailing slash).</div>
+            </div>
+
+            <div class="field">
+                <label>API Key</label>
+                <input type="password" id="kavitaApiKey" placeholder="Leave blank to keep existing key"
+                       autocomplete="new-password">
+                <div class="hint">
+                    Find your API key in Kavita &#8594; User Menu &#8594; User Settings &#8594; Security.
+                    The current key is shown masked; type a new value to replace it.
+                </div>
+            </div>
+
+            <div class="field">
+                <label><input type="checkbox" id="enableOpenLibrary" checked> Enable Open Library metadata lookup</label>
+                <div class="hint">
+                    When uploading files, automatically search Open Library for book information (title, author, subject).
+                    Disable this if you don't want external API calls or if Open Library is unreliable.
+                </div>
+            </div>
+
+            <div class="field">
+                <label>LLM Provider</label>
+                <select id="llmProvider" onchange="updateLlmModelOptions()">
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic</option>
+                </select>
+                <div class="hint">
+                    Choose the AI provider for metadata lookup. DeepSeek is OpenAI-compatible and cost-effective.
+                </div>
+            </div>
+
+            <div class="field">
+                <label>LLM Model</label>
+                <select id="llmModel">
+                    <option value="deepseek-chat">deepseek-chat (DeepSeek)</option>
+                    <option value="deepseek-coder">deepseek-coder (DeepSeek)</option>
+                    <option value="gpt-4o">gpt-4o (OpenAI)</option>
+                    <option value="gpt-4o-mini">gpt-4o-mini (OpenAI)</option>
+                    <option value="gpt-4-turbo">gpt-4-turbo (OpenAI)</option>
+                    <option value="claude-3-opus-20240229">claude-3-opus-20240229 (Anthropic)</option>
+                    <option value="claude-3-sonnet-20240229">claude-3-sonnet-20240229 (Anthropic)</option>
+                </select>
+                <div class="hint">
+                    Model to use for metadata lookup. Available models depend on your chosen provider.
+                </div>
+            </div>
+
+            <div class="field">
+                <label>LLM API Key</label>
+                <input type="password" id="llmApiKey" placeholder="sk-..." autocomplete="new-password">
+                <div class="hint">
+                    API key for your chosen LLM provider. Required for AI-powered metadata lookup.
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Custom Base URL (optional)</label>
+                <input type="text" id="llmBaseUrl" placeholder="https://api.deepseek.com/v1">
+                <div class="hint">
+                    Custom API base URL for OpenAI-compatible APIs. Leave blank for provider defaults.
+                    DeepSeek: https://api.deepseek.com/v1
+                </div>
+            </div>
+
+            <div class="btn-row" style="margin-bottom:14px;">
+                <button class="btn-sm" onclick="saveKavita()" id="saveKavitaBtn">Save</button>
+                <button class="btn-sm btn-secondary" onclick="testConnection()" id="testBtn">Test Kavita</button>
+                <button class="btn-sm btn-secondary" onclick="testLlm()" id="testLlmBtn">Test LLM</button>
+                <span id="connStatus" class="status-badge status-unknown">&#8212; Not tested</span>
+            </div>
+        </div>
+
+        <!-- ── Preferred Subjects ───────────────────────────────────────── -->
+        <div class="section">
+            <div class="section-title">&#128218; Preferred Subjects</div>
+            <p style="font-size:.9em; color:#555; margin:0 0 12px">
+                These subjects are used for auto-categorization. When metadata lookup returns subjects,
+                the system will prioritize matching against this list. You can add, remove, or regenerate
+                this list using DeepSeek.
+            </p>
+
+            <div class="field">
+                <label>Preferred Subjects</label>
+                <textarea id="preferredSubjects" rows="6" style="width:100%;font-family:monospace;font-size:0.9em"
+                          placeholder="One subject per line"></textarea>
+                <div class="hint">
+                    Enter one subject per line. These will be prioritized when auto-categorizing books.
+                </div>
+            </div>
+
+            <div class="btn-row" style="margin-bottom:14px;">
+                <button class="btn-sm" onclick="savePreferredSubjects()" id="saveSubjectsBtn">Save subjects</button>
+                <button class="btn-sm btn-secondary" onclick="generateSubjectsWithDeepSeek()" id="genSubjectsBtn">Generate with DeepSeek</button>
+            </div>
+        </div>
+
+        <!-- ── Library path mapping ────────────────────────────────────── -->
+        <div class="section">
+            <div class="section-title">&#128193; Library Path Mapping</div>
+            <p style="font-size:.9em; color:#555; margin:0 0 12px">
+                Each library needs a path on <em>this machine</em> where its files will be written.
+                Set <strong>Books root</strong> and click <strong>Auto-detect</strong> to propose matches,
+                or type paths directly. Click <strong>Check</strong> to verify each row.
+            </p>
+
+            <div class="field" style="max-width:520px">
+                <label>Books root</label>
+                <input type="text" id="booksRoot"
+                       placeholder="e.g. \\NAS\books  or  /mnt/books  or  /books"
+                       style="width:100%">
+                <div class="hint">
+                    Root folder containing all your library subfolders.
+                    Used for auto-detection and as a fallback when a library has no explicit path.
+                </div>
+            </div>
+
+            <div class="btn-row" style="margin-bottom:12px;">
+                <button class="btn-sm" onclick="saveBooksRoot()" id="saveBooksRootBtn">Save root</button>
+                <button class="btn-sm btn-secondary" onclick="detectPaths()" id="detectBtn">Auto-detect</button>
+                <button class="btn-sm btn-secondary" onclick="saveLibraryPaths()" id="savePathsBtn">Save paths</button>
+                <button class="btn-sm btn-secondary" onclick="checkAllPaths()" id="checkAllBtn">Check all</button>
+                <button class="btn-sm btn-secondary" onclick="rescanAllLibraries()" id="rescanAllBtn">Rescan all libraries</button>
+            </div>
+
+            <div id="libPathTable" style="display:none;">
+                <table style="width:100%; border-collapse:collapse; font-size:.88em;">
+                    <thead>
+                        <tr style="background:#f0f0f0; text-align:left;">
+                            <th style="padding:7px 10px; border-bottom:2px solid #ddd; white-space:nowrap">Library</th>
+                            <th style="padding:7px 10px; border-bottom:2px solid #ddd; white-space:nowrap">Kavita folder</th>
+                            <th style="padding:7px 10px; border-bottom:2px solid #ddd; width:40%">Host path</th>
+                            <th style="padding:7px 10px; border-bottom:2px solid #ddd; white-space:nowrap">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="libPathBody"></tbody>
+                </table>
+            </div>
+            <div id="libPathMsg" style="font-size:.88em; color:#888; margin-top:6px"></div>
+        </div>
+
+        <!-- ── Change password ────────────────────────────────────────── -->
+        <div class="section">
+            <div class="section-title">&#128274; Change Password</div>
+
+            <div class="field">
+                <label>Current password</label>
+                <input type="password" id="currentPassword" autocomplete="current-password">
+            </div>
+            <div class="field">
+                <label>New password</label>
+                <input type="password" id="newPassword" autocomplete="new-password">
+            </div>
+            <div class="field">
+                <label>Confirm new password</label>
+                <input type="password" id="confirmPassword" autocomplete="new-password">
+            </div>
+            <button class="btn-sm" onclick="changePassword()" id="changePwBtn">Change password</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Per-library path table state ────────────────────────────────────────────
+let libRows = [];        // [{ id, library, kavita_folder, host_path }]
+let hostSubfolders = []; // subfolder names under books_root, as reported by detect-paths
+let booksRootNorm  = ''; // normalised books_root returned by detect-paths
+
+async function loadSettings() {
+    try {
+        const r = await fetch('/api/settings');
+        console.log('[loadSettings] Response status:', r.status);
+        if (!r.ok) return;
+        const s = await r.json();
+        console.log('[loadSettings] Loaded settings:', {
+            kavita_url: s.kavita_url,
+            kavita_api_key_masked: s.kavita_api_key_masked,
+            books_root: s.books_root,
+            kavita_configured: s.kavita_configured,
+            enable_open_library: s.enable_open_library,
+            llm_provider: s.llm_provider,
+            llm_model: s.llm_model,
+            llm_api_key: s.llm_api_key,
+            llm_base_url: s.llm_base_url
+        });
+        document.getElementById('kavitaUrl').value = s.kavita_url || '';
+        document.getElementById('booksRoot').value  = s.books_root || '';
+        document.getElementById('enableOpenLibrary').checked = s.enable_open_library !== false;
+        document.getElementById('llmProvider').value = s.llm_provider || 'deepseek';
+        document.getElementById('llmModel').value = s.llm_model || 'deepseek-chat';
+        document.getElementById('llmApiKey').value = s.llm_api_key || '';
+        document.getElementById('llmBaseUrl').value = s.llm_base_url || '';
+        if (s.kavita_api_key_masked) {
+            document.getElementById('kavitaApiKey').placeholder = s.kavita_api_key_masked + '  (leave blank to keep)';
+        }
+        if (s.kavita_configured) {
+            setStatus('ok', '&#10003; Connected');
+            // Load the library table and, if books_root is set, scan for subfolders
+            await loadLibraryPathTable(s.library_paths || {});
+            if (s.books_root) await detectPaths();
+        }
+        // Load preferred subjects
+        loadPreferredSubjects();
+        updateLlmModelOptions();
+    } catch(e) { console.error('[loadSettings] Error:', e); }
+}
+
+function updateLlmModelOptions() {
+    const provider = document.getElementById('llmProvider').value;
+    const modelSelect = document.getElementById('llmModel');
+    modelSelect.innerHTML = '';
+    
+    const models = {
+        deepseek: [
+            { value: 'deepseek-chat', label: 'deepseek-chat' },
+            { value: 'deepseek-coder', label: 'deepseek-coder' },
+        ],
+        openai: [
+            { value: 'gpt-4o', label: 'gpt-4o' },
+            { value: 'gpt-4o-mini', label: 'gpt-4o-mini' },
+            { value: 'gpt-4-turbo', label: 'gpt-4-turbo' },
+            { value: 'gpt-3.5-turbo', label: 'gpt-3.5-turbo' },
+        ],
+        anthropic: [
+            { value: 'claude-3-opus-20240229', label: 'claude-3-opus-20240229' },
+            { value: 'claude-3-sonnet-20240229', label: 'claude-3-sonnet-20240229' },
+            { value: 'claude-3-haiku-20240307', label: 'claude-3-haiku-20240307' },
+        ],
+    };
+    
+    (models[provider] || []).forEach(model => {
+        const opt = document.createElement('option');
+        opt.value = model.value;
+        opt.textContent = model.label;
+        modelSelect.appendChild(opt);
+    });
+    
+    // Update base URL placeholder based on provider
+    const baseUrlInput = document.getElementById('llmBaseUrl');
+    if (provider === 'deepseek') {
+        baseUrlInput.placeholder = 'https://api.deepseek.com/v1';
+    } else {
+        baseUrlInput.placeholder = 'Leave blank for default';
+    }
+}
+
+// ── Library path table ────────────────────────────────────────────────────────
+
+async function loadLibraryPathTable(savedPaths) {
+    // Fetch libraries and build the table from saved paths + library list
+    try {
+        const r = await fetch('/api/libraries');
+        if (!r.ok) return;
+        const libs = await r.json();
+        libRows = libs.map(l => ({
+            id:           String(l.id),
+            library:      l.name,
+            kavita_folder: (l.folders || [])[0] || '',
+            host_path:    savedPaths[String(l.id)] || '',
+        }));
+        renderLibTable();
+    } catch(e) { console.error('loadLibraryPathTable', e); }
+}
+
+function pathToSubfolder(fullPath) {
+    // Given a full path like \\NAS\books\AI or /mnt/books/AI, return just "AI"
+    const norm = (fullPath || '').replace(/\\/g, '/').replace(/\/+$/, '');
+    return norm.split('/').pop() || '';
+}
+
+function buildDropdownHtml(rowId, currentPath) {
+    // currentPath is the full path already saved; extract its last segment to pre-select
+    const currentSub = pathToSubfolder(currentPath);
+    const isManual = currentPath && !hostSubfolders.includes(currentSub);
+
+    let opts = '<option value="">— not mapped —</option>';
+    hostSubfolders.forEach(sf => {
+        const sel = sf === currentSub ? 'selected' : '';
+        opts += `<option value="${esc(sf)}" ${sel}>${esc(sf)}</option>`;
+    });
+    opts += `<option value="__manual__" ${isManual ? 'selected' : ''}>Other / enter manually…</option>`;
+
+    const manualStyle = (isManual || !hostSubfolders.length) ? '' : 'display:none';
+    const manualVal   = isManual ? esc(currentPath) : '';
+
+    return `
+        <select id="libsel-${rowId}" onchange="onLibSelChange('${rowId}')"
+                style="font-size:.87em; padding:4px 6px; border:1px solid #ccc; border-radius:4px;
+                       max-width:100%; min-width:120px">
+            ${opts}
+        </select>
+        <input  id="libman-${rowId}" type="text" value="${manualVal}"
+                placeholder="Full path, e.g. \\\\NAS\\books\\AI"
+                oninput="onLibManualInput('${rowId}', this.value)"
+                style="${manualStyle}; margin-top:4px; width:100%; font-size:.87em;
+                       padding:4px 6px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box">`;
+}
+
+function renderLibTable(statusMap) {
+    if (!libRows.length) return;
+    document.getElementById('libPathTable').style.display = '';
+    const tbody = document.getElementById('libPathBody');
+    tbody.innerHTML = libRows.map(row => {
+        const st = statusMap && statusMap[row.id];
+        let badge = '';
+        if (st) {
+            badge = st.ok
+                ? '<span style="color:#2e7d32;font-weight:600">&#10003; OK</span>'
+                : `<span style="color:#b00" title="${esc(st.error || '')}">&#10007; ${esc(st.shortError || st.error || 'fail')}</span>`;
+        }
+        return `<tr id="librow-${row.id}" style="border-bottom:1px solid #eee">
+            <td style="padding:7px 10px; white-space:nowrap; font-weight:500">${esc(row.library)}</td>
+            <td style="padding:7px 10px; color:#777; font-size:.85em; white-space:nowrap">
+                <code>${esc(row.kavita_folder)}</code>
+            </td>
+            <td style="padding:5px 8px; min-width:200px">
+                ${buildDropdownHtml(row.id, row.host_path)}
+            </td>
+            <td style="padding:7px 10px; white-space:nowrap; min-width:90px" id="libstatus-${row.id}">
+                ${badge}
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function onLibSelChange(id) {
+    const sel = document.getElementById(`libsel-${id}`);
+    const man = document.getElementById(`libman-${id}`);
+    const row = libRows.find(r => r.id === id);
+    if (!row) return;
+
+    if (sel.value === '__manual__') {
+        man.style.display = '';
+        man.focus();
+        row.host_path = man.value.trim();
+    } else if (sel.value === '') {
+        man.style.display = 'none';
+        row.host_path = '';
+    } else {
+        man.style.display = 'none';
+        // Build full path from books_root + chosen subfolder
+        row.host_path = booksRootNorm
+            ? booksRootNorm.replace(/[\\/]+$/, '') + (booksRootNorm.includes('/') ? '/' : '\\') + sel.value
+            : sel.value;
+    }
+}
+
+function onLibManualInput(id, value) {
+    const row = libRows.find(r => r.id === id);
+    if (row) row.host_path = value.trim();
+}
+
+async function saveBooksRoot() {
+    const btn = document.getElementById('saveBooksRootBtn');
+    btn.disabled = true;
+    try {
+        const r = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ books_root: document.getElementById('booksRoot').value.trim() }),
+        });
+        if (r.ok) {
+            // Immediately scan the root so dropdowns populate
+            await detectPaths();
+        } else {
+            showMessage('Save failed.', 'error');
+        }
+    } catch(e) { showMessage('Error: ' + e.message, 'error'); }
+    finally { btn.disabled = false; }
+}
+
+async function detectPaths() {
+    const btn = document.getElementById('detectBtn');
+    btn.disabled = true;
+    btn.textContent = 'Detecting…';
+    setLibMsg('');
+    console.log('[detectPaths] Starting...');
+    try {
+        const r = await fetch('/api/settings/detect-paths');
+        console.log('[detectPaths] Response status:', r.status);
+        const data = await r.json();
+        console.log('[detectPaths] Response data:', data);
+        if (!r.ok || data.error) { setLibMsg('Error: ' + (data.error || r.status)); return; }
+
+        // Update global subfolder list so dropdowns can be populated
+        hostSubfolders = data.host_subfolders || [];
+        booksRootNorm  = data.books_root || '';
+        console.log('[detectPaths] hostSubfolders:', hostSubfolders);
+        console.log('[detectPaths] booksRootNorm:', booksRootNorm);
+
+        if (data.scan_error) {
+            console.log('[detectPaths] scan_error:', data.scan_error);
+            setLibMsg('Error scanning books root: ' + data.scan_error);
+            return;
+        }
+        if (!hostSubfolders.length && booksRootNorm) {
+            console.log('[detectPaths] No subfolders found with books_root set');
+            setLibMsg('Books root is set but no subfolders found — check the path is accessible.');
+        }
+
+        let matched = 0;
+        data.proposals.forEach(p => {
+            const row = libRows.find(r => r.id === p.id);
+            if (!row) return;
+            // Apply suggested path only if no explicit path is already set
+            if (!row.host_path && p.suggested_path) {
+                row.host_path = p.suggested_path;
+                matched++;
+            }
+        });
+        console.log('[detectPaths] Matched', matched, 'libraries');
+
+        // Re-render so all dropdowns are populated with the new subfolder list
+        renderLibTable();
+
+        const unmatched = libRows.filter(r => !r.host_path).map(r => r.library);
+        let msg = '';
+        if (!booksRootNorm) {
+            msg = 'Set Books root above and click Auto-detect to populate the dropdowns.';
+        } else if (hostSubfolders.length === 0) {
+            msg = 'No subfolders found under books root — check the path is correct and accessible.';
+        } else if (matched) {
+            msg = `Auto-matched ${matched} librar${matched===1?'y':'ies'}.`;
+            if (unmatched.length) msg += ` Choose manually for: ${unmatched.join(', ')}.`;
+        } else {
+            msg = `No automatic matches — select from the dropdowns (${hostSubfolders.length} subfolder${hostSubfolders.length!==1?'s':''} available).`;
+        }
+        setLibMsg(msg);
+        console.log('[detectPaths] Message:', msg);
+    } catch(e) {
+        console.error('[detectPaths] Error:', e);
+        setLibMsg('Error: ' + e.message);
+    }
+    finally { btn.disabled = false; btn.textContent = 'Auto-detect'; }
+}
+
+async function saveLibraryPaths() {
+    const btn = document.getElementById('savePathsBtn');
+    btn.disabled = true;
+    try {
+        const paths = {};
+        libRows.forEach(r => { if (r.host_path) paths[r.id] = r.host_path; });
+        const r = await fetch('/api/settings/library-paths', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths }),
+        });
+        showMessage(r.ok ? 'Library paths saved.' : 'Save failed.', r.ok ? 'success' : 'error');
+    } catch(e) { showMessage('Error: ' + e.message, 'error'); }
+    finally { btn.disabled = false; }
+}
+
+async function checkAllPaths() {
+    const btn = document.getElementById('checkAllBtn');
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+    setLibMsg('');
+    try {
+        const r = await fetch('/api/settings/check-paths');
+        const data = await r.json();
+        if (!r.ok || data.error) { setLibMsg('Error: ' + (data.error || r.status)); return; }
+
+        // Build status map keyed by library id
+        const statusMap = {};
+        data.libraries.forEach(lib => {
+            statusMap[String(lib.id)] = {
+                ok:    lib.ok,
+                error: lib.host_error || buildMismatchMsg(lib),
+            };
+        });
+        renderLibTable(statusMap);
+
+        const bad = data.libraries.filter(l => !l.ok).length;
+        setLibMsg(bad === 0
+            ? 'All paths verified ✓'
+            : `${bad} path${bad>1?'s':''} need attention — see table.`);
+    } catch(e) { setLibMsg('Error: ' + e.message); }
+    finally { btn.disabled = false; btn.textContent = 'Check all'; }
+}
+
+async function rescanAllLibraries() {
+    const btn = document.getElementById('rescanAllBtn');
+    btn.disabled = true;
+    btn.textContent = 'Rescanning…';
+    setLibMsg('');
+    try {
+        const r = await fetch('/api/settings/rescan-all', { method: 'POST' });
+        const data = await r.json();
+        if (!r.ok || data.error) { setLibMsg('Error: ' + (data.error || r.status)); return; }
+        
+        const scanned = data.results.filter(r => r.status === 'scanned').length;
+        const failed = data.results.filter(r => r.status === 'error').length;
+        
+        if (failed === 0) {
+            setLibMsg(`Successfully scanned ${scanned} librar${scanned===1?'y':'ies'}`);
+        } else {
+            setLibMsg(`Scanned ${scanned}, failed ${failed} — check logs for details`);
+        }
+    } catch(e) { setLibMsg('Error: ' + e.message); }
+    finally { btn.disabled = false; btn.textContent = 'Rescan all libraries'; }
+}
+
+function buildMismatchMsg(lib) {
+    if (lib.only_in_kavita && lib.only_in_kavita.length)
+        return 'Kavita has series not visible here: ' + lib.only_in_kavita.join(', ');
+    if (lib.only_on_host && lib.only_on_host.length)
+        return 'Host has folders not in Kavita: ' + lib.only_on_host.join(', ');
+    return 'Contents do not match';
+}
+
+function setLibMsg(msg) {
+    document.getElementById('libPathMsg').textContent = msg;
+}
+
+function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function saveKavita() {
+    const btn = document.getElementById('saveKavitaBtn');
+    btn.disabled = true;
+    try {
+        const payload = {
+            kavita_url:           document.getElementById('kavitaUrl').value.trim(),
+            kavita_api_key:       document.getElementById('kavitaApiKey').value.trim(),
+            enable_open_library: document.getElementById('enableOpenLibrary').checked,
+            llm_provider:        document.getElementById('llmProvider').value,
+            llm_model:           document.getElementById('llmModel').value,
+            llm_api_key:          document.getElementById('llmApiKey').value.trim(),
+            llm_base_url:         document.getElementById('llmBaseUrl').value.trim(),
+        };
+        console.log('[saveKavita] Sending:', { kavita_url: payload.kavita_url, kavita_api_key: payload.kavita_api_key ? '***' : '' });
+        const r = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        console.log('[saveKavita] Response status:', r.status);
+        if (r.ok) {
+            showMessage('Settings saved.', 'success');
+            document.getElementById('kavitaApiKey').value = '';
+            await loadSettings();
+            setStatus('unknown', '&#8212; Test to verify');
+        } else {
+            console.error('[saveKavita] Failed:', r.status);
+            showMessage('Failed to save settings.', 'error');
+        }
+    } catch(e) {
+        console.error('[saveKavita] Error:', e);
+        showMessage('Error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function testConnection() {
+    const btn = document.getElementById('testBtn');
+    btn.disabled = true;
+    setStatus('spinner', '<span class="spinner"></span> Testing&hellip;');
+    try {
+        const r = await fetch('/api/settings/test-connection', { method: 'POST' });
+        const data = await r.json();
+        if (data.ok) {
+            setStatus('ok', `&#10003; Connected as ${data.username} (Kavita ${data.kavita_version})`);
+        } else {
+            setStatus('error', '&#10007; ' + (data.error || 'Connection failed'));
+        }
+    } catch(e) {
+        setStatus('error', '&#10007; ' + e.message);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function testLlm() {
+    const btn = document.getElementById('testLlmBtn');
+    btn.disabled = true;
+    btn.textContent = 'Testing&hellip;';
+    try {
+        const r = await fetch('/api/settings/test-llm', { method: 'POST' });
+        const data = await r.json();
+        if (data.status === 'ok') {
+            alert(`✓ LLM connection successful!\n\nProvider: ${data.provider}\nModel: ${data.model}`);
+        } else if (data.status === 'not_configured') {
+            alert('ℹ LLM API key not configured.\n\nConfigure LLM settings first.');
+        } else {
+            alert(`✗ LLM connection failed:\n\n${data.error}`);
+        }
+    } catch(e) {
+        alert('✗ Error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Test LLM';
+    }
+}
+
+function setStatus(type, html) {
+    const el = document.getElementById('connStatus');
+    el.className = 'status-badge ' + (type === 'ok' ? 'status-ok' : type === 'error' ? 'status-error' : 'status-unknown');
+    el.innerHTML = html;
+}
+
+async function changePassword() {
+    const current = document.getElementById('currentPassword').value;
+    const next    = document.getElementById('newPassword').value;
+    const confirm = document.getElementById('confirmPassword').value;
+
+    if (!current || !next) { showMessage('Please fill in all password fields.', 'error'); return; }
+    if (next !== confirm)  { showMessage('New passwords do not match.', 'error'); return; }
+
+    const btn = document.getElementById('changePwBtn');
+    btn.disabled = true;
+    try {
+        const fd = new FormData();
+        fd.append('current_password', current);
+        fd.append('new_password', next);
+        const r = await fetch('/api/change-password', { method: 'POST', body: fd });
+        if (r.ok) {
+            showMessage('Password changed successfully.', 'success');
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        } else {
+            const err = await r.json().catch(() => ({}));
+            showMessage(err.detail || 'Failed to change password.', 'error');
+        }
+    } catch(e) {
+        showMessage('Error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function showMessage(text, type) {
+    const el = document.getElementById('message');
+    el.textContent = text;
+    el.className = 'message ' + type;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 6000);
+}
+
+async function logout() {
+    await fetch('/api/logout', { method: 'POST' }).catch(() => {});
+    window.location.href = '/login';
+}
+
+loadSettings();
+
+async function loadPreferredSubjects() {
+    try {
+        const r = await fetch('/api/settings');
+        if (!r.ok) return;
+        const s = await r.json();
+        const subjects = s.preferred_subjects || [];
+        document.getElementById('preferredSubjects').value = subjects.join('\n');
+    } catch(e) { console.error(e); }
+}
+
+async function savePreferredSubjects() {
+    const btn = document.getElementById('saveSubjectsBtn');
+    btn.disabled = true;
+    try {
+        const text = document.getElementById('preferredSubjects').value;
+        const subjects = text.split('\n').map(s => s.trim()).filter(s => s);
+        const r = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preferred_subjects: subjects }),
+        });
+        if (r.ok) {
+            showMessage('Preferred subjects saved.', 'success');
+        } else {
+            showMessage('Failed to save subjects.', 'error');
+        }
+    } catch(e) {
+        showMessage('Error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function generateSubjectsWithDeepSeek() {
+    const btn = document.getElementById('genSubjectsBtn');
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    try {
+        const r = await fetch('/api/settings/generate-subjects', { method: 'POST' });
+        const data = await r.json();
+        if (!r.ok || data.error) {
+            showMessage('Error: ' + (data.error || r.status), 'error');
+            return;
+        }
+        if (data.subjects && data.subjects.length > 0) {
+            document.getElementById('preferredSubjects').value = data.subjects.join('\n');
+            showMessage(`Generated ${data.subjects.length} subjects. Click Save to persist.`, 'success');
+        } else {
+            showMessage('No subjects generated.', 'warning');
+        }
+    } catch(e) {
+        showMessage('Error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate with DeepSeek';
+    }
+}
+</script>
+</body>
+</html>

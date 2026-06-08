@@ -1,0 +1,1247 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Kavita Ingest Manager</title>
+        <style>
+            *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                padding: 20px;
+            }
+
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                overflow: hidden;
+            }
+
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 12px 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .header h1 { font-size: 1.2em; margin: 0; }
+            .header p  { opacity: 0.85; font-size: 0.8em; margin: 0; }
+            .header-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+            .content { padding: 12px 20px; }
+
+            .bulk-bar {
+                background: #f8f9ff;
+                border: 1px solid #e0e4ff;
+                border-radius: 8px;
+                padding: 10px 14px;
+                margin-bottom: 12px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                align-items: flex-end;
+            }
+            .bulk-bar .field { display:flex; flex-direction:column; gap:4px; flex:1; min-width:150px; }
+            .bulk-bar label { font-size:0.78em; font-weight:700; color:#555; text-transform:uppercase; letter-spacing:.04em; }
+            .bulk-bar select, .bulk-bar input[type=text] {
+                padding: 7px 10px;
+                border: 1.5px solid #ccd;
+                border-radius: 8px;
+                font-size: 0.9em;
+            }
+            .bulk-bar select:focus, .bulk-bar input:focus { outline:none; border-color:#667eea; }
+
+            .drop-zone {
+                border: 2.5px dashed #c0c8f8;
+                border-radius: 14px;
+                padding: 28px;
+                text-align: center;
+                cursor: pointer;
+                transition: background .2s, border-color .2s;
+                margin-bottom: 18px;
+                color: #667eea;
+                font-weight: 600;
+                font-size: 1.05em;
+            }
+            .drop-zone:hover, .drop-zone.drag-over {
+                background: #f0f2ff;
+                border-color: #667eea;
+            }
+            .drop-zone input { display: none; }
+            .drop-zone .sub { font-weight: 400; font-size: 0.82em; color: #888; margin-top: 6px; }
+
+            .queue-wrap {
+                border: 1px solid #e8e8f0;
+                border-radius: 12px;
+                overflow: auto;
+                margin-bottom: 18px;
+            }
+            .queue-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.86em;
+            }
+            .queue-table th {
+                background: #f4f5ff;
+                padding: 9px 10px;
+                text-align: left;
+                font-weight: 700;
+                color: #444;
+                border-bottom: 1px solid #e0e0ee;
+                white-space: nowrap;
+            }
+            .queue-table td {
+                padding: 7px 9px;
+                border-bottom: 1px solid #f0f0f8;
+                vertical-align: top;
+            }
+            .queue-table tr:last-child td { border-bottom: none; }
+            .queue-table tr:hover td { background: #fafbff; }
+
+            .queue-table input[type=text], .queue-table select {
+                width: 100%;
+                padding: 5px 8px;
+                border: 1.5px solid #dde;
+                border-radius: 7px;
+                font-size: 0.9em;
+                background: white;
+            }
+            .queue-table input[type=text]:focus, .queue-table select:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+
+            .badge {
+                display: inline-block;
+                padding: 3px 9px;
+                border-radius: 20px;
+                font-size: 0.76em;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+            .badge-pending  { background: #e8e8f8; color: #555; }
+            .badge-loading  { background: #fff3cd; color: #856404; }
+            .badge-ok       { background: #d4edda; color: #155724; }
+            .badge-error    { background: #f8d7da; color: #721c24; }
+
+            .suggestions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+            .suggestion-pill {
+                background: #eef0ff;
+                border: 1px solid #c0c8f8;
+                border-radius: 20px;
+                padding: 2px 9px;
+                font-size: 0.74em;
+                cursor: pointer;
+                color: #445;
+                transition: background .15s;
+                white-space: nowrap;
+                max-width: 220px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .suggestion-pill:hover { background: #dde3ff; }
+            .suggestion-pill.filename { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
+            .suggestion-pill.filename:hover { background: #c8e6c9; }
+
+            .remove-btn {
+                background: none;
+                border: none;
+                color: #bbb;
+                cursor: pointer;
+                font-size: 1.1em;
+                padding: 2px 6px;
+                border-radius: 5px;
+                width: auto;
+                transition: color .15s;
+            }
+            .remove-btn:hover { color: #dc3545; background: #fff0f0; transform: none; box-shadow: none; }
+
+            button {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 11px 22px;
+                border: none;
+                border-radius: 10px;
+                font-size: 0.95em;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform .2s, box-shadow .2s;
+                width: 100%;
+            }
+            button:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,.4); }
+            button:active { transform: translateY(0); }
+            button:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+            .btn-sm { padding: 7px 14px; font-size: 0.83em; width: auto; }
+            .btn-danger { background: #dc3545; }
+            .btn-danger:hover { box-shadow: 0 5px 20px rgba(220,53,69,.4); }
+            .btn-secondary { background: #6c757d; }
+            .btn-secondary:hover { box-shadow: 0 5px 20px rgba(108,117,125,.4); }
+
+            .submit-row { display:flex; gap:12px; align-items:center; }
+            .submit-row button[id=submitBtn] { flex:1; font-size:1.05em; padding:13px 24px; }
+
+            .message {
+                padding: 13px 16px;
+                border-radius: 10px;
+                margin-bottom: 16px;
+                display: none;
+                font-size: 0.93em;
+            }
+            .message.success { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+            .message.error   { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+            .message.warning { background:#fff3cd; color:#856404; border:1px solid #ffeaa7; }
+
+            .spinner {
+                display: inline-block;
+                width: 13px; height: 13px;
+                border: 2px solid #ccc;
+                border-top-color: #667eea;
+                border-radius: 50%;
+                animation: spin 0.7s linear infinite;
+                vertical-align: middle;
+                margin-right: 4px;
+            }
+            @keyframes spin { to { transform: rotate(360deg); } }
+
+            .logout-btn { background:#dc3545; padding:7px 14px; font-size:0.83em; width:auto; }
+            .logout-btn:hover { box-shadow: 0 4px 14px rgba(220,53,69,.4); }
+        </style>
+    </head>
+    <body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>&#128218; Kavita Ingest Manager</h1>
+                <p>Bulk add books to your Kavita library with auto-metadata</p>
+            </div>
+            <div class="header-right">
+                <span style="font-size:.9em">Logged in as <strong>{{ current_user }}</strong></span>
+                <a href="/settings" style="color:white;font-size:.83em;font-weight:600;text-decoration:none;background:rgba(255,255,255,.18);padding:7px 14px;border-radius:10px;">&#9881;&#65039; Settings</a>
+                <button class="logout-btn btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="kavitaBanner" style="display:none; background:#fff3cd; color:#856404; border:1px solid #ffeaa7; border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:.85em;">
+                &#9888;&#65039; Kavita is not connected. <a href="/settings" style="color:#856404; font-weight:700;">Go to Settings</a> to add your Kavita URL and API key.
+            </div>
+            <div id="pathBanner" style="display:none; background:#fff3cd; color:#856404; border:1px solid #ffeaa7; border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:.85em;">
+                &#9888;&#65039; <strong>Books root path not set.</strong>
+                <a href="/settings" style="color:#856404; font-weight:700;">Go to Settings</a> and enter
+                the <strong>Books root path</strong> — the folder on this machine where your books are stored
+                (e.g. <code>\\NAS\books</code> or <code>/mnt/books</code>).
+            </div>
+            <div id="message" class="message"></div>
+
+            <!-- Bulk apply bar -->
+            <div class="bulk-bar" id="bulkBar" style="display:none">
+                <div class="field">
+                    <label>Apply library to selected</label>
+                    <select id="bulkLibrary">
+                        <option value="">-- choose --</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Apply subject to selected</label>
+                    <input type="text" id="bulkSubject" list="bulkSubjectList" placeholder="e.g. Physics">
+                    <datalist id="bulkSubjectList"></datalist>
+                </div>
+                <div class="field" style="flex:0; white-space:nowrap">
+                    <label>&nbsp;</label>
+                    <button class="btn-sm btn-secondary" onclick="applyBulk()">Apply to checked rows</button>
+                </div>
+                <div class="field" style="flex:0; white-space:nowrap">
+                    <label>&nbsp;</label>
+                    <button class="btn-sm btn-secondary" onclick="applyBulkAll()">Apply to ALL rows</button>
+                </div>
+            </div>
+
+            <!-- Drop zone -->
+            <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <div>&#128194; Drop files here or click to browse</div>
+                <div class="sub">PDF &bull; EPUB &bull; CBZ &bull; CBR &mdash; multiple files supported</div>
+                <input type="file" id="fileInput" multiple accept=".pdf,.epub,.cbz,.cbr">
+            </div>
+
+            <!-- Queue table -->
+            <div class="queue-wrap" id="queueWrap" style="display:none; overflow-x: auto; max-height: 75vh; overflow-y: auto">
+                <table class="queue-table" style="min-width: 100%; font-size: 0.8em; border-collapse: collapse">
+                    <style>
+                        .queue-table td, .queue-table th {
+                            padding: 4px 6px !important;
+                            vertical-align: middle;
+                        }
+                        .queue-table input, .queue-table select {
+                            padding: 2px 4px !important;
+                            font-size: 0.85em !important;
+                            margin: 0;
+                        }
+                    </style>
+                    <thead>
+                        <tr>
+                            <th style="width:32px"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" checked></th>
+                            <th style="min-width:80px;text-align:center">Status</th>
+                            <th style="min-width:130px;max-width:190px">File</th>
+                            <th style="min-width:200px">Title</th>
+                            <th style="min-width:140px">Subject</th>
+                            <th style="min-width:140px">Author</th>
+                            <th style="min-width:80px">Year</th>
+                            <th style="min-width:140px">Publisher</th>
+                            <th style="min-width:140px">Library</th>
+                            <th style="min-width:40px"></th>
+                            <th style="min-width:40px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="queueBody"></tbody>
+                </table>
+            </div>
+
+            <div class="submit-row" id="submitRow" style="display:none; margin-top: 10px">
+                <button id="submitBtn" onclick="submitQueue()">&#128229; Ingest &amp; Sync to Kavita</button>
+                <button class="btn-danger btn-sm" onclick="clearQueue()">Clear all</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password modal -->
+    <div id="passwordModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:1000;">
+        <div style="background:white; max-width:380px; margin:100px auto; padding:30px; border-radius:18px;">
+            <h2 style="margin-bottom:18px; font-size:1.3em;">Change Password</h2>
+            <form id="passwordForm">
+                <div style="margin-bottom:14px;">
+                    <label style="display:block; margin-bottom:5px; font-weight:600; font-size:.9em;">Current Password</label>
+                    <input type="password" id="currentPassword" required style="width:100%; padding:10px; border:2px solid #dde; border-radius:8px; font-size:1em;">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; margin-bottom:5px; font-weight:600; font-size:.9em;">New Password</label>
+                    <input type="password" id="newPassword" required style="width:100%; padding:10px; border:2px solid #dde; border-radius:8px; font-size:1em;">
+                </div>
+                <button type="submit" style="margin-bottom:8px;">Change Password</button>
+                <button type="button" class="btn-secondary" onclick="hidePasswordModal()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    // -----------------------------------------------------------------------
+    // State
+    // -----------------------------------------------------------------------
+    let libraries = [];
+    let queue = [];
+    let nextId = 0;
+
+    // -----------------------------------------------------------------------
+    // Init
+    // -----------------------------------------------------------------------
+    async function init() {
+        await loadLibraries();
+        setupDropZone();
+        document.getElementById('fileInput').addEventListener('change', e => addFiles(e.target.files));
+    }
+
+    // -----------------------------------------------------------------------
+    // Libraries
+    // -----------------------------------------------------------------------
+    async function loadLibraries() {
+        try {
+            const r = await fetch('/api/libraries');
+            if (r.ok) {
+                libraries = await r.json();
+                populateLibrarySelects();
+                document.getElementById('kavitaBanner').style.display = libraries.length === 0 ? '' : 'none';
+
+                // Show path banner when Kavita is connected but books_root isn't set.
+                // We detect this by fetching settings — if books_root is empty, warn.
+                fetch('/api/settings').then(r => r.json()).then(s => {
+                    const needsPath = libraries.length > 0 && !s.books_root;
+                    document.getElementById('pathBanner').style.display = needsPath ? '' : 'none';
+                }).catch(() => {});
+            }
+        } catch(e) { console.error('loadLibraries', e); }
+    }
+
+    // FileTypeGroup enum from Kavita: 1=Archive, 2=Epub, 3=Pdf, 4=Images
+    // LibraryType enum: 0=Manga, 1=Comic, 2=Book, 3=Image, 4=LightNovel, 5=ComicVine
+    const LIB_TYPE_NAMES = {0:'Manga',1:'Comic',2:'Book',3:'Image',4:'Light Novel',5:'Comic (Vine)'};
+    const FILE_TYPE_NAMES = {1:'Archive',2:'EPUB',3:'PDF',4:'Images'};
+    // Map file extension → FileTypeGroup(s) it belongs to
+    const EXT_TO_FILE_TYPE = {
+        '.cbz':1, '.cbr':1, '.zip':1, '.rar':1, '.tar':1, '.7z':1,
+        '.epub':2,
+        '.pdf':3,
+        '.jpg':4, '.jpeg':4, '.png':4, '.gif':4, '.webp':4,
+    };
+
+    function libraryPathOk(lib) {
+        return !!(lib && lib.host_folder);
+    }
+
+    function buildLibOpts(placeholder) {
+        const opts = libraries.map(l => {
+            const ok = libraryPathOk(l);
+            const label = ok ? l.name : `${l.name} ⚠ path not set`;
+            return `<option value="${l.id}" data-path="${l.host_folder||''}" ${ok ? '' : 'disabled style="color:#999"'}>${label}</option>`;
+        }).join('');
+        return `<option value="">${placeholder}</option>` + opts;
+    }
+
+    function populateLibrarySelects() {
+        document.getElementById('bulkLibrary').innerHTML = buildLibOpts('-- choose --');
+        document.querySelectorAll('.row-library-select').forEach(sel => {
+            const cur = sel.value;
+            sel.innerHTML = buildLibOpts('-- select --');
+            if (cur) sel.value = cur;
+        });
+    }
+
+    function libraryPathForId(id) {
+        const lib = libraries.find(l => l.id == id);
+        return lib ? lib.host_folder || '' : '';
+    }
+
+    function libraryForId(id) {
+        return libraries.find(l => l.id == id) || null;
+    }
+
+    // Returns a warning string if the file extension isn't accepted by this library, else null.
+    function fileTypeWarning(filename, lib) {
+        if (!lib || !lib.libraryFileTypes || lib.libraryFileTypes.length === 0) return null;
+        const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase();
+        const fileGroup = EXT_TO_FILE_TYPE[ext];
+        if (!fileGroup) return null;  // unknown ext — don't warn
+        const accepted = lib.libraryFileTypes;  // array of ints
+        if (!accepted.includes(fileGroup)) {
+            const acceptedNames = accepted.map(g => FILE_TYPE_NAMES[g] || g).join(', ');
+            return `${FILE_TYPE_NAMES[fileGroup] || ext.toUpperCase()} files may not be accepted by the "${lib.name}" library (accepts: ${acceptedNames})`;
+        }
+        return null;
+    }
+
+    // -----------------------------------------------------------------------
+    // Drop zone
+    // -----------------------------------------------------------------------
+    function setupDropZone() {
+        const zone = document.getElementById('dropZone');
+        zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            zone.classList.remove('drag-over');
+            addFiles(e.dataTransfer.files);
+        });
+    }
+
+    // -----------------------------------------------------------------------
+    // Add files to queue
+    // -----------------------------------------------------------------------
+    async function addFiles(fileList) {
+        const newItems = [];
+        for (const file of fileList) {
+            const item = {
+                id: nextId++, file, fileName: file.name,
+                title: stemName(file.name), subject: '',
+                author: '', year: '', publisher: '',
+                libraryId: '', libraryPath: '',
+                status: 'pending', suggestions: [],
+                deepseek_results: [], openlibrary_results: []
+            };
+            queue.push(item);
+            newItems.push(item);
+        }
+        renderQueue();
+        // Batch metadata lookup for all files
+        if (newItems.length > 0) {
+            fetchMetadataBatch(newItems);
+        }
+        // reset file input so same files can be re-added if needed
+        document.getElementById('fileInput').value = '';
+    }
+
+    function stemName(fn) {
+        return fn.replace(/[.][^.]+$/, '').replace(/[_.\\-]+/g, ' ').replace(/[ ]+/g, ' ').trim();
+    }
+
+    // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------
+    // Batch metadata lookup
+    // -----------------------------------------------------------------------
+    async function fetchMetadataBatch(items) {
+        console.log('[fetchMetadataBatch] Starting batch lookup for', items.length, 'files');
+        
+        // Set all to loading
+        items.forEach(item => {
+            setRowStatus(item.id, 'loading', '<span class="spinner"></span><span class="badge badge-loading">Looking up&hellip;</span>');
+        });
+        
+        try {
+            const fd = new FormData();
+            items.forEach(item => fd.append('files', item.file));
+            
+            console.log('[fetchMetadataBatch] Fetching batch metadata from API...');
+            const r = await fetch('/api/metadata/batch', { method: 'POST', body: fd });
+            if (!r.ok) throw new Error(r.statusText);
+            const data = await r.json();
+            console.log('[fetchMetadataBatch] Batch API response:', data);
+            
+            // Process results for each item
+            data.results.forEach((result, index) => {
+                const item = items[index];
+                if (!item) return;
+                
+                console.log('[fetchMetadataBatch] Processing result for:', item.fileName);
+                
+                // Store query for modal
+                const query = result.filename.replace(/[.][^.]+$/, '').replace(/[_.\-]+/g, ' ');
+                item.query_used = query;
+                
+                // Use embedded metadata if available
+                if (result.embedded.title) {
+                    item.title = result.embedded.title;
+                    console.log('[fetchMetadataBatch] Set title from embedded:', item.title);
+                }
+                if (result.embedded.author) {
+                    item.author = result.embedded.author;
+                    console.log('[fetchMetadataBatch] Set author from embedded:', item.author);
+                }
+                if (result.embedded.subject) {
+                    item.subject = item.subject || result.embedded.subject;
+                    console.log('[fetchMetadataBatch] Set subject from embedded:', item.subject);
+                }
+                
+                // Use DeepSeek result if available
+                if (result.deepseek_result) {
+                    const ds = result.deepseek_result;
+                    console.log('[fetchMetadataBatch] DeepSeek result:', ds);
+                    console.log('[fetchMetadataBatch] DeepSeek result author:', ds.author);
+                    // Store as array for modal compatibility
+                    item.deepseek_results = [ds];
+                    // Store Open Library results for modal
+                    item.openlibrary_results = result.openlibrary_result || [];
+                    console.log('[fetchMetadataBatch] Stored deepseek_results:', item.deepseek_results);
+                    if (!item.title && ds.title) {
+                        item.title = ds.title;
+                        console.log('[fetchMetadataBatch] Set title from DeepSeek:', item.title);
+                    }
+                    if (!item.author && ds.author) {
+                        item.author = ds.author;
+                        console.log('[fetchMetadataBatch] Set author from DeepSeek:', item.author);
+                    }
+                    if (!item.year && ds.year) {
+                        item.year = String(ds.year);
+                        console.log('[fetchMetadataBatch] Set year from DeepSeek:', item.year);
+                    }
+                    if (!item.publisher && ds.publisher) {
+                        item.publisher = ds.publisher;
+                        console.log('[fetchMetadataBatch] Set publisher from DeepSeek:', item.publisher);
+                    }
+                    if (!item.subject && ds.subjects && ds.subjects.length > 0) {
+                        item.subject = ds.subjects[0];
+                        console.log('[fetchMetadataBatch] Set subject from DeepSeek:', item.subject);
+                    }
+                    if (!item.libraryId && ds.suggested_library_id) {
+                        console.log('[fetchMetadataBatch] DeepSeek suggested library ID:', ds.suggested_library_id);
+                        item.libraryId = String(ds.suggested_library_id);  // Convert to string for select element
+                        const matchedLib = libraries.find(l => l.id == ds.suggested_library_id);
+                        console.log('[fetchMetadataBatch] Matched library object:', matchedLib);
+                        if (matchedLib) {
+                            console.log('[fetchMetadataBatch] Library kavita_folder:', matchedLib.kavita_folder);
+                            console.log('[fetchMetadataBatch] Library folders:', matchedLib.folders);
+                            item.libraryPath = matchedLib.kavita_folder || '';
+                        } else {
+                            console.error('[fetchMetadataBatch] No library found with ID:', ds.suggested_library_id);
+                        }
+                    }
+                }
+                
+                // Update UI
+                const row = document.getElementById('row-' + item.id);
+                if (row) {
+                    const titleInput = row.querySelector('.cell-title input');
+                    if (titleInput) titleInput.value = item.title;
+                    const authorInput = row.querySelector('.cell-author input');
+                    if (authorInput) authorInput.value = item.author;
+                    const yearInput = row.querySelector('.cell-year input');
+                    if (yearInput) yearInput.value = item.year;
+                    const publisherInput = row.querySelector('.cell-publisher input');
+                    if (publisherInput) publisherInput.value = item.publisher;
+                    const subjectInput = row.querySelector('.cell-subject input');
+                    if (subjectInput) subjectInput.value = item.subject;
+                    const libSelect = row.querySelector('.row-library-select');
+                    if (libSelect && item.libraryId) libSelect.value = item.libraryId;
+                    renderSuggestions(item);
+                }
+                
+                setRowStatus(item.id, 'pending', '<span class="badge badge-pending">Ready</span>');
+            });
+        } catch(e) {
+            console.error('[fetchMetadataBatch] Error:', e);
+            items.forEach(item => {
+                setRowStatus(item.id, 'error', '<span class="badge badge-error">&times; Error</span>');
+            });
+        }
+    }
+
+    // Metadata fetch
+    // -----------------------------------------------------------------------
+    async function fetchMetadata(item) {
+        console.log('[fetchMetadata] Starting for file:', item.fileName);
+        setRowStatus(item.id, 'loading', '<span class="spinner"></span><span class="badge badge-loading">Looking up&hellip;</span>');
+        try {
+            const fd = new FormData();
+            fd.append('file', item.file);
+            console.log('[fetchMetadata] Fetching metadata from API...');
+            const r = await fetch('/api/metadata', { method: 'POST', body: fd });
+            if (!r.ok) throw new Error(r.statusText);
+            const data = await r.json();
+            console.log('[fetchMetadata] API response:', data);
+
+            // Store both result sets for the modal
+            item.deepseek_results = data.deepseek_results || [];
+            item.openlibrary_results = data.suggestions || [];
+            item.query_used = data.query_used || '';
+            console.log('[fetchMetadata] DeepSeek results:', item.deepseek_results.length);
+            console.log('[fetchMetadata] Open Library results:', item.openlibrary_results.length);
+
+            // Use embedded metadata if available
+            console.log('[fetchMetadata] Embedded metadata:', data.embedded);
+            if (data.embedded.title) {
+                item.title = data.embedded.title;
+                console.log('[fetchMetadata] Set title from embedded:', item.title);
+            }
+            if (data.embedded.author) {
+                item.author = data.embedded.author;
+                console.log('[fetchMetadata] Set author from embedded:', item.author);
+            }
+            if (data.embedded.subject) {
+                item.subject = item.subject || data.embedded.subject;
+                console.log('[fetchMetadata] Set subject from embedded:', item.subject);
+            }
+
+            // Auto-fill from Open Library (default) if no embedded data
+            if (data.suggestions.length > 0) {
+                console.log('[fetchMetadata] Processing Open Library results');
+                const best = data.suggestions[0];
+                console.log('[fetchMetadata] Best Open Library result:', best);
+                if (!item.title && best.title) {
+                    item.title = best.title;
+                    console.log('[fetchMetadata] Set title from Open Library:', item.title);
+                }
+                if (!item.author && best.author) {
+                    item.author = best.author;
+                    console.log('[fetchMetadata] Set author from Open Library:', item.author);
+                }
+                if (!item.year && best.first_published) {
+                    item.year = String(best.first_published);
+                    console.log('[fetchMetadata] Set year from Open Library:', item.year);
+                }
+                // Pick best subject match from preferred subjects
+                if (!item.subject && best.subjects && best.subjects.length > 0) {
+                    const preferred = data.preferred_subjects || [];
+                    const match = best.subjects.find(s => preferred.includes(s));
+                    item.subject = match || best.subjects[0];
+                    console.log('[fetchMetadata] Set subject from Open Library:', item.subject, 'preferred:', preferred);
+                }
+                console.log('[fetchMetadata] Attempting library auto-select for Open Library result');
+                // No library auto-selection for Open Library (rely on DeepSeek)
+            }
+
+            // Auto-fill from DeepSeek results if available
+            if (data.deepseek_results && data.deepseek_results.length > 0) {
+                console.log('[fetchMetadata] Processing DeepSeek results');
+                const best = data.deepseek_results[0];
+                console.log('[fetchMetadata] Best DeepSeek result:', best);
+                if (!item.title && best.title) {
+                    item.title = best.title;
+                    console.log('[fetchMetadata] Set title from DeepSeek:', item.title);
+                }
+                if (!item.author && best.author) {
+                    item.author = best.author;
+                    console.log('[fetchMetadata] Set author from DeepSeek:', item.author);
+                }
+                if (!item.year && best.year) {
+                    item.year = String(best.year);
+                    console.log('[fetchMetadata] Set year from DeepSeek:', item.year);
+                }
+                if (!item.publisher && best.publisher) {
+                    item.publisher = best.publisher;
+                    console.log('[fetchMetadata] Set publisher from DeepSeek:', item.publisher);
+                }
+                // Pick best subject match from preferred subjects
+                if (!item.subject && best.subjects && best.subjects.length > 0) {
+                    const preferred = data.preferred_subjects || [];
+                    const match = best.subjects.find(s => preferred.includes(s));
+                    item.subject = match || best.subjects[0];
+                    console.log('[fetchMetadata] Set subject from DeepSeek:', item.subject, 'preferred:', preferred);
+                }
+                // Use DeepSeek's suggested library ID
+                if (!item.libraryId && best.suggested_library_id) {
+                    console.log('[fetchMetadata] DeepSeek suggested library ID:', best.suggested_library_id);
+                    item.libraryId = best.suggested_library_id;
+                    // Find the library to get its kavita_folder
+                    const matchedLib = libraries.find(l => l.id == best.suggested_library_id);
+                    if (matchedLib) {
+                        console.log('[fetchMetadata] Set library from DeepSeek:', matchedLib.name);
+                        item.libraryPath = matchedLib.kavita_folder || '';
+                    }
+                } else {
+                    console.log('[fetchMetadata] No suggested library from DeepSeek');
+                }
+            }
+
+            item.suggestions = data.suggestions;
+
+            const row = document.getElementById('row-' + item.id);
+            if (row) {
+                row.querySelector('.cell-title input').value = item.title;
+                row.querySelector('.cell-author input').value = item.author;
+                row.querySelector('.cell-year input').value = item.year;
+                row.querySelector('.cell-publisher input').value = item.publisher;
+                row.querySelector('.cell-subject input').value = item.subject;
+                renderSuggestions(item);
+            }
+            setRowStatus(item.id, 'pending', '<span class="badge badge-pending">Ready</span>');
+        } catch(e) {
+            setRowStatus(item.id, 'pending', '<span class="badge badge-pending">Ready</span>');
+        }
+    }
+
+    function renderSuggestions(item) {
+        const row = document.getElementById('row-' + item.id);
+        if (!row) return;
+        const container = row.querySelector('.suggestions');
+        container.innerHTML = '';
+
+        // Always show the filename stem as the first selectable option
+        const stemTitle = item.fileName.replace(/[.][^.]+$/, '').replace(/[_.\\-]+/g, ' ').replace(/[ ]+/g, ' ').trim();
+        const filenamePill = document.createElement('span');
+        filenamePill.className = 'suggestion-pill filename';
+        filenamePill.title = 'Use filename';
+        filenamePill.textContent = stemTitle;
+        filenamePill.onclick = () => {
+            item.title = stemTitle;
+            row.querySelector('.cell-title input').value = stemTitle;
+        };
+        container.appendChild(filenamePill);
+
+        // Open Library suggestions follow
+        item.suggestions.forEach(s => {
+            const pill = document.createElement('span');
+            pill.className = 'suggestion-pill';
+            pill.title = (s.author || '') + (s.first_published ? ' \u00b7 ' + s.first_published : '');
+            pill.textContent = s.title;
+            pill.onclick = () => {
+                item.title = s.title;
+                row.querySelector('.cell-title input').value = s.title;
+                if (s.author) {
+                    item.author = s.author;
+                    row.querySelector('.cell-author input').value = s.author;
+                }
+                if (s.first_published) {
+                    item.year = String(s.first_published);
+                    row.querySelector('.cell-year input').value = item.year;
+                }
+                if (!item.subject && s.subjects && s.subjects.length > 0) {
+                    item.subject = s.subjects[0];
+                    row.querySelector('.cell-subject input').value = item.subject;
+                }
+            };
+            container.appendChild(pill);
+        });
+    }
+
+    // -----------------------------------------------------------------------
+    // Render queue table
+    // -----------------------------------------------------------------------
+    function renderQueue() {
+        const body = document.getElementById('queueBody');
+        const libOpts = libraries.map(l => `<option value="${l.id}" data-path="${l.host_folder||''}" data-kavita-path="${l.kavita_folder||''}">${l.name}</option>`).join('');
+
+        body.innerHTML = queue.map(item => `
+            <tr id="row-${item.id}">
+                <td><input type="checkbox" class="row-check" checked></td>
+                <td id="status-${item.id}" style="text-align:center; white-space:nowrap; min-width:80px">
+                    <span class="badge badge-pending">Ready</span>
+                </td>
+                <td title="${escHtml(item.fileName)}" style="max-width:190px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+                    ${escHtml(item.fileName)}
+                </td>
+                <td class="cell-title" style="min-width:200px">
+                    <input type="text" value="${escHtml(item.title)}" oninput="updateField(${item.id},'title',this.value)" style="padding: 4px 6px; font-size: 0.9em">
+                    <div class="suggestions"></div>
+                </td>
+                <td class="cell-subject" style="min-width:140px">
+                    <input type="text" list="bulkSubjectList" value="${escHtml(item.subject)}" oninput="updateField(${item.id},'subject',this.value)" style="padding: 4px 6px; font-size: 0.9em">
+                </td>
+                <td class="cell-author" style="min-width:140px">
+                    <input type="text" value="${escHtml(item.author)}" placeholder="Author" oninput="updateField(${item.id},'author',this.value)" style="padding: 4px 6px; font-size: 0.9em">
+                </td>
+                <td class="cell-year" style="min-width:80px">
+                    <input type="text" value="${escHtml(item.year)}" placeholder="Year" oninput="updateField(${item.id},'year',this.value)" style="padding: 4px 6px; font-size: 0.9em">
+                </td>
+                <td class="cell-publisher" style="min-width:140px">
+                    <input type="text" value="${escHtml(item.publisher)}" placeholder="Publisher" oninput="updateField(${item.id},'publisher',this.value)" style="padding: 4px 6px; font-size: 0.9em">
+                </td>
+                <td style="min-width:160px">
+                    <select class="row-library-select" onchange="onRowLibraryChange(${item.id}, this)">
+                        <option value="">-- select --</option>
+                        ${libOpts}
+                    </select>
+                    <div class="lib-warning" id="libwarn-${item.id}" style="display:none; font-size:.78em; color:#b00; margin-top:3px"></div>
+                </td>
+                <td style="text-align:center; min-width:40px">
+                    <button class="info-btn" onclick="showMetadataModal(${item.id})" title="Metadata info" style="background:none;border:none;cursor:pointer;font-size:1.1em;color:#666">ℹ️</button>
+                </td>
+                <td style="text-align:center; min-width:40px">
+                    <button class="remove-btn" onclick="removeRow(${item.id})" title="Remove">&times;</button>
+                </td>
+            </tr>
+        `).join('');
+
+        queue.forEach(item => {
+            const sel = document.querySelector(`#row-${item.id} .row-library-select`);
+            if (sel && item.libraryId) sel.value = item.libraryId;
+        });
+
+        queue.forEach(item => renderSuggestions(item));
+
+        const has = queue.length > 0;
+        document.getElementById('queueWrap').style.display  = has ? '' : 'none';
+        document.getElementById('submitRow').style.display  = has ? '' : 'none';
+        document.getElementById('bulkBar').style.display    = has ? '' : 'none';
+    }
+
+    function updateField(id, field, value) {
+        const idx = queue.findIndex(i => i.id === id);
+        if (idx >= 0) queue[idx][field] = value;
+    }
+
+    function onRowLibraryChange(id, sel) {
+        const idx = queue.findIndex(i => i.id === id);
+        if (idx < 0) return;
+        const lib = libraryForId(sel.value);
+        queue[idx].libraryId   = sel.value ? parseInt(sel.value) : '';
+        queue[idx].libraryPath = lib ? (lib.kavita_folder || '') : '';  // Use Kavita's internal path for scanning
+
+        // Show inline warning if the library path isn't accessible
+        const warnEl = document.getElementById(`libwarn-${id}`);
+        if (warnEl) {
+            const warnings = [];
+            if (sel.value && lib && !lib.host_folder) {
+                warnings.push('⚠ Path not configured — go to Settings and set Books root path');
+            } else {
+                const ftWarn = fileTypeWarning(queue[idx].fileName, lib);
+                if (ftWarn) warnings.push('⚠ ' + ftWarn);
+            }
+            if (warnings.length) {
+                warnEl.textContent = warnings.join(' · ');
+                warnEl.style.display = '';
+            } else {
+                warnEl.style.display = 'none';
+            }
+        }
+
+        if (queue[idx].libraryPath) loadSubjectsForPath(queue[idx].libraryPath);
+    }
+
+    function setRowStatus(id, statusKey, html) {
+        const cell = document.getElementById('status-' + id);
+        if (cell) cell.innerHTML = html;
+        const idx = queue.findIndex(i => i.id === id);
+        if (idx >= 0) queue[idx].status = statusKey;
+    }
+
+    function removeRow(id) {
+        queue = queue.filter(i => i.id !== id);
+        renderQueue();
+    }
+
+    function clearQueue() { queue = []; renderQueue(); }
+
+    function toggleSelectAll(cb) {
+        document.querySelectorAll('.row-check').forEach(c => c.checked = cb.checked);
+    }
+
+    // -----------------------------------------------------------------------
+    // Subjects autocomplete
+    // -----------------------------------------------------------------------
+    const subjectCache = {};
+    async function loadSubjectsForPath(path) {
+        if (subjectCache[path]) return;
+        try {
+            const r = await fetch('/api/subjects/' + encodeURIComponent(path));
+            if (r.ok) {
+                const subjects = await r.json();
+                subjectCache[path] = subjects;
+                const dl = document.getElementById('bulkSubjectList');
+                const existing = new Set(Array.from(dl.querySelectorAll('option')).map(o => o.value));
+                subjects.forEach(s => { if (!existing.has(s)) dl.innerHTML += `<option value="${escHtml(s)}">`; });
+            }
+        } catch(e) {}
+    }
+
+    // -----------------------------------------------------------------------
+    // Bulk apply
+    // -----------------------------------------------------------------------
+    function selectedIds() {
+        const ids = [];
+        document.querySelectorAll('#queueBody tr').forEach(row => {
+            const cb = row.querySelector('.row-check');
+            if (cb && cb.checked) ids.push(parseInt(row.id.replace('row-', '')));
+        });
+        return ids;
+    }
+
+    function applyBulk()    { applyBulkToIds(selectedIds()); }
+    function applyBulkAll() { applyBulkToIds(queue.map(i => i.id)); }
+
+    function applyBulkToIds(ids) {
+        const libSel  = document.getElementById('bulkLibrary');
+        const subj    = document.getElementById('bulkSubject').value.trim();
+        const author  = document.getElementById('bulkAuthor').value.trim();
+        const year    = document.getElementById('bulkYear').value.trim();
+        const pub     = document.getElementById('bulkPublisher').value.trim();
+        const libId   = libSel.value ? parseInt(libSel.value) : null;
+        const libPath = libId ? libraryPathForId(libId) : null;
+
+        ids.forEach(id => {
+            const idx = queue.findIndex(i => i.id === id);
+            if (idx < 0) return;
+            const row = document.getElementById('row-' + id);
+            if (libId) {
+                queue[idx].libraryId   = libId;
+                queue[idx].libraryPath = libPath;
+                const sel = row && row.querySelector('.row-library-select');
+                if (sel) sel.value = libId;
+                if (libPath) loadSubjectsForPath(libPath);
+            }
+            if (subj) {
+                queue[idx].subject = subj;
+                const inp = row && row.querySelector('.cell-subject input');
+                if (inp) inp.value = subj;
+            }
+            if (author) {
+                queue[idx].author = author;
+                const inp = row && row.querySelector('.cell-author input');
+                if (inp) inp.value = author;
+            }
+            if (year) {
+                queue[idx].year = year;
+                const inp = row && row.querySelector('.cell-year input');
+                if (inp) inp.value = year;
+            }
+            if (pub) {
+                queue[idx].publisher = pub;
+                const inp = row && row.querySelector('.cell-publisher input');
+                if (inp) inp.value = pub;
+            }
+        });
+    }
+
+    // -----------------------------------------------------------------------
+    // Submit queue
+    // -----------------------------------------------------------------------
+    async function submitQueue() {
+        const toUpload = queue.filter(i => i.status !== 'ok');
+        if (!toUpload.length) { showMessage('Nothing to upload.', 'warning'); return; }
+
+        // Validate each row with specific, actionable messages
+        let blockingErrors = 0;
+        toUpload.forEach(i => {
+            const problems = [];
+            const lib = libraryForId(i.libraryId);
+
+            if (!i.libraryId) {
+                problems.push('no library selected');
+            } else if (!i.libraryPath) {
+                // Library is selected but has no accessible path
+                problems.push(`"${lib ? lib.name : 'selected library'}" has no accessible path — set Books root path in Settings`);
+            }
+            if (!i.subject.trim()) problems.push('subject is empty');
+            if (!i.title.trim())   problems.push('title is empty');
+
+            if (problems.length) {
+                blockingErrors++;
+                const tip = problems.join(' · ');
+                setRowStatus(i.id, 'error',
+                    `<span class="badge badge-error" title="${escHtml(tip)}">&#9432; ${escHtml(problems[0])}</span>`);
+            }
+        });
+        if (blockingErrors) {
+            showMessage(`${blockingErrors} row(s) have errors — hover the red badge for details.`, 'error');
+            return;
+        }
+
+        document.getElementById('submitBtn').disabled = true;
+
+        const fd = new FormData();
+        const lib_ids = [], lib_paths = [], subjects = [], titles = [];
+        const authors = [], years = [], publishers = [];
+
+        toUpload.forEach(item => {
+            console.log('[submitQueue] Uploading item:', item.fileName, 'libraryId:', item.libraryId, 'libraryPath:', item.libraryPath);
+            fd.append('files', item.file);
+            lib_ids.push(item.libraryId || 0);
+            lib_paths.push(item.libraryPath || '');
+            subjects.push(item.subject);
+            titles.push(item.title);
+            authors.push(item.author || '');
+            years.push(item.year || '');
+            publishers.push(item.publisher || '');
+            setRowStatus(item.id, 'loading', '<span class="spinner"></span><span class="badge badge-loading">Uploading&hellip;</span>');
+        });
+        
+        console.log('[submitQueue] lib_ids:', lib_ids);
+        console.log('[submitQueue] lib_paths:', lib_paths);
+
+        fd.append('library_ids',   JSON.stringify(lib_ids));
+        fd.append('library_paths', JSON.stringify(lib_paths));
+        fd.append('subjects',      JSON.stringify(subjects));
+        fd.append('titles',        JSON.stringify(titles));
+        fd.append('authors',       JSON.stringify(authors));
+        fd.append('years',         JSON.stringify(years));
+        fd.append('publishers',    JSON.stringify(publishers));
+
+        try {
+            const r = await fetch('/api/bulk-upload', { method: 'POST', body: fd });
+            const result = await r.json();
+
+            result.results.forEach((res, i) => {
+                const item = toUpload[i];
+                if (res.status === 'ok') setRowStatus(item.id, 'ok', '<span class="badge badge-ok">&#10003; Done</span>');
+                else setRowStatus(item.id, 'error', `<span class="badge badge-error" title="${escHtml(res.error||'')}">&times; Error</span>`);
+            });
+
+            const msg = `${result.ok} file(s) ingested` + (result.errors ? `, ${result.errors} failed.` : ' successfully.');
+            console.log('[submitQueue] Upload result:', result);
+            showMessage(msg, result.errors ? 'warning' : 'success');
+        } catch(e) {
+            toUpload.forEach(i => setRowStatus(i.id, 'error', '<span class="badge badge-error">&times; Error</span>'));
+            showMessage('Upload failed: ' + e.message, 'error');
+        } finally {
+            document.getElementById('submitBtn').disabled = false;
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Utilities
+    // -----------------------------------------------------------------------
+    function escHtml(s) {
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showMessage(text, type) {
+        const el = document.getElementById('message');
+        el.textContent = text;
+        el.className = 'message ' + type;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 8000);
+    }
+
+    async function logout() {
+        await fetch('/api/logout', { method: 'POST' }).catch(()=>{});
+        window.location.href = '/login';
+    }
+
+    function showPasswordModal() { document.getElementById('passwordModal').style.display = 'block'; }
+    function hidePasswordModal() {
+        document.getElementById('passwordModal').style.display = 'none';
+        document.getElementById('passwordForm').reset();
+    }
+
+    document.getElementById('passwordForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd = new FormData();
+        fd.append('current_password', document.getElementById('currentPassword').value);
+        fd.append('new_password',     document.getElementById('newPassword').value);
+        try {
+            const r = await fetch('/api/change-password', { method: 'POST', body: fd });
+            if (r.ok) { showMessage('Password changed successfully', 'success'); hidePasswordModal(); }
+            else       { showMessage('Failed to change password', 'error'); }
+        } catch(e) { showMessage('Error changing password', 'error'); }
+    });
+
+    init();
+    
+    // -----------------------------------------------------------------------
+    // Metadata modal
+    // -----------------------------------------------------------------------
+    let currentModalItem = null;
+
+    function showMetadataModal(id) {
+        const item = queue.find(i => i.id === id);
+        if (!item) return;
+        currentModalItem = item;
+
+        const modal = document.getElementById('metadataModal');
+        const content = document.getElementById('modalContent');
+
+        let html = `<div style="margin-bottom:6px;font-size:0.8em"><strong>File:</strong> ${escHtml(item.fileName)}</div>`;
+
+        // Show results in a table format
+        html += `<table style="width:100%;border-collapse:collapse;font-size:0.75em;margin-bottom:6px">
+            <thead>
+                <tr style="background:#f5f5f5">
+                    <th style="padding:3px;text-align:left">Source</th>
+                    <th style="padding:3px;text-align:left">Title</th>
+                    <th style="padding:3px;text-align:left">Author</th>
+                    <th style="padding:3px;text-align:left">Year</th>
+                    <th style="padding:3px;text-align:left">Subject</th>
+                    <th style="padding:3px;text-align:left;width:50px"></th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        let hasResults = false;
+
+        // DeepSeek results
+        console.log('[showMetadataModal] DeepSeek results:', item.deepseek_results);
+        if (item.deepseek_results && item.deepseek_results.length > 0) {
+            hasResults = true;
+            item.deepseek_results.forEach((r, i) => {
+                const subject = (r.subjects && r.subjects.length > 0) ? r.subjects[0] : '';
+                console.log('[showMetadataModal] Rendering DeepSeek result', i, ':', r);
+                console.log('[showMetadataModal] Author field:', r.author, 'type:', typeof r.author);
+                html += `<tr style="border-bottom:1px solid #eee">
+                    <td style="padding:3px"><strong>DeepSeek</strong></td>
+                    <td style="padding:3px">${escHtml(r.title || 'N/A')}</td>
+                    <td style="padding:3px">${escHtml(r.author || 'N/A')}</td>
+                    <td style="padding:3px">${escHtml(String(r.year || 'N/A'))}</td>
+                    <td style="padding:3px">${escHtml(subject)}</td>
+                    <td style="padding:3px;text-align:center">
+                        <button class="btn-sm" style="padding:2px 4px;font-size:0.7em" onclick="applyMetadata(${id}, 'deepseek', ${i})">Pick</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        // Open Library results
+        if (item.openlibrary_results && item.openlibrary_results.length > 0) {
+            hasResults = true;
+            item.openlibrary_results.forEach((r, i) => {
+                const subject = (r.subjects && r.subjects.length > 0) ? r.subjects[0] : '';
+                html += `<tr style="border-bottom:1px solid #eee">
+                    <td style="padding:3px"><strong>OpenLib</strong></td>
+                    <td style="padding:3px">${escHtml(r.title || 'N/A')}</td>
+                    <td style="padding:3px">${escHtml(r.author || 'N/A')}</td>
+                    <td style="padding:3px">${escHtml(String(r.first_published || 'N/A'))}</td>
+                    <td style="padding:3px">${escHtml(subject)}</td>
+                    <td style="padding:3px;text-align:center">
+                        <button class="btn-sm" style="padding:2px 4px;font-size:0.7em" onclick="applyMetadata(${id}, 'openlibrary', ${i})">Pick</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        // Filename option
+        html += `<tr style="border-bottom:1px solid #eee">
+            <td style="padding:3px"><strong>Filename</strong></td>
+            <td style="padding:3px">${escHtml(stemName(item.fileName))}</td>
+            <td style="padding:3px" colspan="3"></td>
+            <td style="padding:3px;text-align:center">
+                <button class="btn-sm" style="padding:2px 4px;font-size:0.7em" onclick="applyMetadata(${id}, 'filename')">Pick</button>
+            </td>
+        </tr>`;
+
+        html += `</tbody></table>`;
+
+        if (!hasResults) {
+            html += `<div style="color:#666;font-size:0.75em">No results from DeepSeek or Open Library</div>`;
+        }
+
+        content.innerHTML = html;
+        modal.style.display = 'flex';
+    }
+
+    
+    function closeMetadataModal() {
+        document.getElementById('metadataModal').style.display = 'none';
+        currentModalItem = null;
+    }
+    
+    // Add ESC key support for modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeMetadataModal();
+        }
+    });
+    
+    function applyMetadata(id, source, index = 0) {
+        const item = queue.find(i => i.id === id);
+        if (!item) return;
+        
+        // Get selected subject from radio button
+        let selectedSubject = null;
+        if (source === 'deepseek') {
+            const radio = document.querySelector(`input[name="ds_subject_${id}"]:checked`);
+            if (radio) selectedSubject = radio.value;
+        } else if (source === 'openlibrary') {
+            const radio = document.querySelector(`input[name="ol_subject_${id}"]:checked`);
+            if (radio) selectedSubject = radio.value;
+        }
+        
+        if (source === 'filename') {
+            item.title = stemName(item.fileName);
+        } else if (source === 'deepseek') {
+            const r = item.deepseek_results[index];
+            if (r) {
+                if (r.title) item.title = r.title;
+                if (r.author) item.author = r.author;
+                if (r.year) item.year = String(r.year);
+                if (r.publisher) item.publisher = r.publisher;
+                if (r.subjects && r.subjects.length > 0 && !item.subject) {
+                    item.subject = selectedSubject || r.subjects[0];
+                }
+            }
+        } else if (source === 'openlibrary') {
+            const r = item.openlibrary_results[index];
+            if (r) {
+                if (r.title) item.title = r.title;
+                if (r.author) item.author = r.author;
+                if (r.first_published) item.year = String(r.first_published);
+                if (r.subjects && r.subjects.length > 0 && !item.subject) {
+                    item.subject = selectedSubject || r.subjects[0];
+                }
+            }
+        }
+        
+        // Update the UI
+        const row = document.getElementById('row-' + id);
+        if (row) {
+            const titleInput = row.querySelector('.cell-title input');
+            if (titleInput) titleInput.value = item.title;
+            const authorInput = row.querySelector('.cell-author input');
+            if (authorInput) authorInput.value = item.author;
+            const yearInput = row.querySelector('.cell-year input');
+            if (yearInput) yearInput.value = item.year;
+            const publisherInput = row.querySelector('.cell-publisher input');
+            if (publisherInput) publisherInput.value = item.publisher;
+            const subjectInput = row.querySelector('.cell-subject input');
+            if (subjectInput) subjectInput.value = item.subject;
+        }
+        
+        closeMetadataModal();
+    }
+</script>
+    
+<!-- Metadata selection modal -->
+<div id="metadataModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+    <div style="background:white;border-radius:6px;padding:8px;max-width:500px;max-height:70vh;overflow-y:auto;box-shadow:0 2px 8px rgba(0,0,0,0.2)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <h2 style="margin:0;font-size:0.95em">Metadata</h2>
+            <button onclick="closeMetadataModal()" style="background:none;border:none;cursor:pointer;padding:0 4px;font-size:1.2em;color:#666;width:30px;height:30px;display:flex;align-items:center;justify-content:center">&times;</button>
+        </div>
+        <div id="modalContent" style="font-size:0.8em"></div>
+    </div>
+</div></body>
+    </html>
+    """
