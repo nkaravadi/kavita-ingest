@@ -108,10 +108,21 @@ Open `http://localhost:8000` in your browser.
 ```bash
 # On your NAS
 cd kavita-ingest
-docker compose up -d
+nano docker-compose.yml
 ```
 
-That's it. The tool runs on your NAS and can access your book folders directly.
+Edit the volume mount to point to your books:
+```yaml
+volumes:
+  - /Volume1/kavita/books:/books  # Change /Volume1/kavita/books to your actual path
+```
+
+Then start:
+```bash
+docker-compose up -d
+```
+
+**Important:** In the web UI settings, set **Books Root Path** to `/books` (the container path, not the host path). The app runs inside Docker and can only see mounted paths.
 
 ---
 
