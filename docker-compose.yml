@@ -3,10 +3,10 @@ services:
     build: .
     container_name: kavita-ingest
     ports:
-      - "${PORT:-8080}:${PORT:-8080}"
+      - "${PORT:-8000}:${PORT:-8000}"
     environment:
       # Listening port — change here AND in the ports mapping above if needed
-      - PORT=${PORT:-8080}
+      - PORT=${PORT:-8000}
       # DATA_DIR is baked into the image as /data; override here only if you
       # want a different path inside the container (rarely needed)
       # - DATA_DIR=/data
